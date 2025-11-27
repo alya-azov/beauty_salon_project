@@ -1,0 +1,7 @@
+my_env/
+__pycache__/
+*.pyc
+*.db
+.vscode/
+*.sqlite
+*.log
