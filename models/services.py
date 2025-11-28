@@ -33,7 +33,7 @@ class Service(Base):
         hours = self.duration_minutes // 60
         minutes = self.duration_minutes % 60
 
-        if hours > 0: # type: ignore - оно ругается, мол это запрос в sql, а не число
+        if hours > 0: #type: ignore
             return f"{hours} ч {minutes} мин"
         else:
             return f"{minutes} мин"

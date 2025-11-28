@@ -8,17 +8,30 @@ import hashlib
 admin = "admin"
 admin_password = "admin123"
 
+# Нормализация телефона
+def normalize_phone(phone_str: str) -> str:
+    # Удаляем все нецифровые символы 
+    cleaned = ''.join(c for c in phone_str if c.isdigit())
+        
+    # Заменяем 7 на 8 если номер начинается с 7
+    if cleaned.startswith('7'):
+        cleaned = '8' + cleaned[1:]
+    return cleaned
+    
+
 # для хэширования
 def simple_hash(password: str) -> str:
     return hashlib.md5(password.encode('utf-8')).hexdigest()
 
 # вход для клиента
 def login_client(session: Session) -> Optional[Client]:
-    print("Вход для клиента")
+    print("\nВход для клиента")
     phone = input("Введите телефон: ")
     password = input("Введите пароль: ")
+
+    normalized_phone = normalize_phone(phone)
     
-    client = session.query(Client).filter(Client.phone == phone).first()
+    client = session.query(Client).filter(Client.phone == normalized_phone).first()
     if client and client.password_hash == simple_hash(password): #type: ignore
         print(f"Добро пожаловать, {client.full_name}!")
         return client
@@ -28,7 +41,7 @@ def login_client(session: Session) -> Optional[Client]:
 
 # вход для admin
 def login_admin() -> bool:
-    print("Вход для администратора")
+    print("\nВход для администратора")
     username = input("Логин: ")
     password = input("Пароль: ")
     
@@ -41,7 +54,7 @@ def login_admin() -> bool:
 
 # регистрация клиента
 def register_client(session: Session) -> Optional[Client]:
-    print("Регистрация нового клиента")
+    print("\nРегистрация нового клиента")
     
     first_name = input("Имя: ")
     last_name = input("Фамилия: ")
@@ -54,16 +67,21 @@ def register_client(session: Session) -> Optional[Client]:
         print("Пароли не совпадают!")
         return None
     
-    # Проверка на уникальность
-    existing_client = session.query(Client).filter((Client.email == email) | (Client.phone == phone)).first()
+    #приводим email к нижнему регистру
+    normalized_email = email.lower().strip()
+
+    normalized_phone = normalize_phone(phone)
+    
+    # Проверка на уникальность с нормализованными данными
+    existing_client = session.query(Client).filter((Client.email.ilike(normalized_email)) | (Client.phone == normalized_phone)).first()
     
     if existing_client:
-        if existing_client.email == email: #type: ignore
+        if existing_client.email.lower() == normalized_email: #type: ignore
             print("Клиент с таким email уже существует!")
         else:
             print("Клиент с таким телефоном уже существует!")
         return None
 
-    
-    client = create_client(session, first_name, last_name, phone, email, simple_hash(password))
+    client = create_client(session, first_name, last_name, normalized_phone, normalized_email, password)
     return client
+

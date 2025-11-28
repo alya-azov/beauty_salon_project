@@ -5,9 +5,6 @@ from typing import Optional
 
 # добавить нового мастера
 def add_master(session: Session, first_name: str, last_name: str, phone: str, email: str, specialty: str) -> Master:
-    """
-    добавляет нового мастера в бд
-    """
     new_m = Master(
         first_name=first_name,
         last_name=last_name,

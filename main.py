@@ -1,11 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models.masters import Base
-from auth.simple_auth import authenticate_user
+from auth.authentification import login_client, login_admin, register_client
 from admin.master_management import add_master, delete_master, get_all_masters, get_masters_by_specialty, update_master, master_by_id
 from admin.service_management import add_service, delete_service, update_service, service_by_id, get_all_services, get_services_by_category, get_all_categories, add_new_category, delete_category
 from client.viewing_options import show_all_masters, show_masters_by_specialty, show_all_services, show_services_by_category, show_service_details, show_master_by_id, show_all_categories
-
+from admin.client_management import delete_client
 
 # Подключение к базе данных
 engine = create_engine("postgresql://postgres:4321wwee@localhost:5432/salon_project")
@@ -184,7 +184,7 @@ def client_services_menu():
         else:
             print("Неверный выбор")
 
-def client_menu():
+def client_menu(client):
     while True:
         print("\n👋 МЕНЮ КЛИЕНТА")
         print("1. Просмотр мастеров")
@@ -206,33 +206,31 @@ def client_menu():
 # ========== ГЛАВНОЕ МЕНЮ ==========
 def main():
     print("САЛОН КРАСОТЫ - ВХОД В СИСТЕМУ")
+    delete_client(session, 4)
     
     while True:
         print("\n1. Войти как администратор")
-        print("2. Войти как клиент")
-        print("3. Выйти из программы")
+        print("2. Войти как клиент") 
+        print("3. Зарегистрироваться как клиент")
+        print("4. Выйти из программы")
         
         choice = input("Выберите вариант: ")
         
         if choice == "1":
-            login = input("Логин: ")
-            password = input("Пароль: ")
-            if authenticate_user(login, password) == "admin":
+            if login_admin():
                 admin_menu()
-            else:
-                print("Неверный логин или пароль!")
         elif choice == "2":
-            login = input("Логин: ")
-            password = input("Пароль: ")
-            if authenticate_user(login, password) == "client":
-                client_menu()
-            else:
-                print("Неверный логин или пароль!")
+            client = login_client(session)
+            if client:
+                client_menu(client)
         elif choice == "3":
+            client = register_client(session)
+        elif choice == "4":
             print("До свидания!")
             break
         else:
-            print("Неверный выбор")
+            print("Неверный выбор, попробуйте снова")
+
 
 
 # ========== ЗАПУСК ПРОГРАММЫ ==========
