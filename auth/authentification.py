@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from models.clients import Client
 from typing import Optional
-from client.client_functions import create_client
+from user_interface.client_functions import create_client
 import hashlib
 
 # Данные администратора (без хэша)
@@ -11,12 +11,19 @@ admin_password = "admin123"
 # Нормализация телефона
 def normalize_phone(phone_str: str) -> str:
     # Удаляем все нецифровые символы 
-    cleaned = ''.join(c for c in phone_str if c.isdigit())
+    cleaned = ''.join(c for c in phone_str if c.isdigit() or c == '+')
         
     # Заменяем 7 на 8 если номер начинается с 7
-    if cleaned.startswith('7'):
-        cleaned = '8' + cleaned[1:]
+    if cleaned.startswith('7') or cleaned.startswith('8'):
+        cleaned = '+7' + cleaned[1:]
     return cleaned
+
+#для красивого вывода номера
+def format_phone(phone_str: str) -> str:
+    normalized = normalize_phone(phone_str)
+    if len(normalized) == 12 and normalized.startswith('+7'):
+        return f"+7 ({normalized[2:5]}) {normalized[5:8]}-{normalized[8:10]}-{normalized[10:]}"
+    return normalized
     
 
 # для хэширования

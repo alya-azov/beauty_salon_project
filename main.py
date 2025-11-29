@@ -6,6 +6,7 @@ from admin.master_management import add_master, delete_master, get_all_masters, 
 from admin.service_management import add_service, delete_service, update_service, service_by_id, get_all_services, get_services_by_category, get_all_categories, add_new_category, delete_category
 from client.viewing_options import show_all_masters, show_masters_by_specialty, show_all_services, show_services_by_category, show_service_details, show_master_by_id, show_all_categories
 from admin.client_management import delete_client
+from client.client_functions import update_my_info
 
 # Подключение к базе данных
 engine = create_engine("postgresql://postgres:4321wwee@localhost:5432/salon_project")
@@ -206,7 +207,6 @@ def client_menu(client):
 # ========== ГЛАВНОЕ МЕНЮ ==========
 def main():
     print("САЛОН КРАСОТЫ - ВХОД В СИСТЕМУ")
-    delete_client(session, 4)
     
     while True:
         print("\n1. Войти как администратор")
@@ -221,8 +221,14 @@ def main():
                 admin_menu()
         elif choice == "2":
             client = login_client(session)
-            if client:
-                client_menu(client)
+            if client is None:
+                print("jkhkh")
+            else: 
+                field = input("field: ")
+                value = input("value: ")
+                update_my_info(session, client, field, value)
+            #if client:
+            #    client_menu(client)
         elif choice == "3":
             client = register_client(session)
         elif choice == "4":

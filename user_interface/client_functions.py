@@ -25,11 +25,11 @@ def create_client(session: Session, first_name: str, last_name: str, phone: str,
 
 # обновить свои данные (кроме пароля)
 def update_my_info(session: Session, client: Client, field: str, value: str) -> bool:
-    if field != 'password':
-        if field == 'phone':
+    if field != "password":
+        if field == "phone":
             from auth.authentification import normalize_phone
             setattr(client, field, normalize_phone(value))
-        elif field == 'email':
+        elif field == "email":
             setattr(client, field, value.lower().strip())
         else:
             setattr(client, field, value)

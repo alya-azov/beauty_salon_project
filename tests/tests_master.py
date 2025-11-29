@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from admin.master_management import add_master, delete_master
+from management.master_management import MasterService, SpecialtyService
 from models.masters import Master, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -46,13 +46,14 @@ def test_delete():
     Base.metadata.create_all(engine1)
     Session = sessionmaker(engine1)
     session = Session()
+
+    master_service = MasterService(session)
     
     # Добавляем мастера
-    master = add_master(
-        session=session,
+    master = master_service.create_master(
         first_name="Светлана",
         last_name="Петрова", 
-        phone="111",
+        phone="7-932 (730) 88 88",
         email="@test.ru",
         specialty="Бровист"
     )
@@ -60,16 +61,17 @@ def test_delete():
     master_id = master.master_id
     
     # 2. Проверяем что мастер есть в базе
-    check_master = session.query(Master).filter_by(master_id=master_id).first()
+    check_master = master_service.get_master_by_id(master_id)
     assert check_master is not None
     assert check_master.first_name == "Светлана"
+    assert check_master.phone == "+79327308888"
     
     # 3. Удаляем мастера
-    result = delete_master(session, master_id)
+    result = master_service.delete_master(master_id)  # ← через сервис
     assert result is True
     
     # 4. Проверяем что мастера больше нет
-    deleted_master = session.query(Master).filter_by(master_id=master_id).first()
+    deleted_master = master_service.get_master_by_id(master_id)  # ← через сервис
     assert deleted_master is None
     print("test_delete")
     
