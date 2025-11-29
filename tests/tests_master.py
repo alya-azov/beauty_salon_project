@@ -13,11 +13,11 @@ def test_master_class():
                     phone="+7-999-123-45-67", email="anna@salon.ru",
                     specialty="Парикмахер")
     
-    assert master.first_name == "Анна"
-    assert master.last_name == "Иванова"
-    assert master.phone == "+7-999-123-45-67"
-    assert master.email == "anna@salon.ru"
-    assert master.specialty == "Парикмахер"
+    assert master.first_name == "Анна"#type: ignore
+    assert master.last_name == "Иванова"#type: ignore
+    assert master.phone == "+7-999-123-45-67"#type: ignore
+    assert master.email == "anna@salon.ru"#type: ignore
+    assert master.specialty == "Парикмахер"#type: ignore
     assert master.full_name == "Анна Иванова"
     
     print("test_master_class")
@@ -31,9 +31,9 @@ def test_master_class_withot_phone_and_email():
         specialty="Парикмахер"
     )
     
-    assert master.first_name == "Анна"
-    assert master.last_name == "Петрова"
-    assert master.specialty == "Парикмахер"
+    assert master.first_name == "Анна" #type: ignore
+    assert master.last_name == "Петрова" #type: ignore
+    assert master.specialty == "Парикмахер"#type: ignore
     assert master.phone is None
     assert master.email is None
     assert master.full_name == "Анна Петрова"
@@ -61,17 +61,17 @@ def test_delete():
     master_id = master.master_id
     
     # 2. Проверяем что мастер есть в базе
-    check_master = master_service.get_master_by_id(master_id)
+    check_master = master_service.get_master_by_id(master_id)#type: ignore
     assert check_master is not None
-    assert check_master.first_name == "Светлана"
-    assert check_master.phone == "+79327308888"
+    assert check_master.first_name == "Светлана"#type: ignore
+    assert check_master.phone == "+79327308888"#type: ignore
     
     # 3. Удаляем мастера
-    result = master_service.delete_master(master_id)  # ← через сервис
+    result = master_service.delete_master(master_id)  #type: ignore
     assert result is True
     
     # 4. Проверяем что мастера больше нет
-    deleted_master = master_service.get_master_by_id(master_id)  # ← через сервис
+    deleted_master = master_service.get_master_by_id(master_id)  #type: ignore
     assert deleted_master is None
     print("test_delete")
     
