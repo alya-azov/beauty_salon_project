@@ -40,6 +40,7 @@ class MasterUI:
 
         for master in masters:
             print(f"  {master.master_id}) {master.full_name} - {master.specialty}")
+            print()
     
     @staticmethod
     def show_master_created(master: Master) -> None:
@@ -50,6 +51,7 @@ class MasterUI:
             master: Созданный мастер
         """
         print(f"Мастер создан: {master.full_name} (ID: {master.master_id})")
+        print()
     
     @staticmethod
     def show_master_updated(master: Master) -> None:
@@ -60,6 +62,7 @@ class MasterUI:
             master: Обновленный мастер
         """
         print(f"Данные мастера обновлены: {master.full_name}")
+        print()
     
     @staticmethod
     def show_master_deleted(master_id: int, success: bool) -> None:
@@ -72,8 +75,10 @@ class MasterUI:
         """
         if success:
             print(f"Мастер с ID {master_id} удален")
+            print()
         else:
-            print(f"Мастер с ID {master_id} не найден")
+            print(f"Мастер не найден")
+            print()
 
 #Класс для вывода информации о специальностях
 class SpecialtyUI:    
@@ -87,10 +92,12 @@ class SpecialtyUI:
         """
         if not specialties:
             print("Специальности не найдены")
+            print()
             return
         
         for i, specialty in enumerate(specialties, 1):
             print(str(i) + ")" + specialty)
+        print()
     
     @staticmethod
     def show_masters_by_specialty(specialty: str, masters: List[Master]) -> None:
@@ -108,6 +115,7 @@ class SpecialtyUI:
         print(f"Мастера специальности '{specialty}':")
         for master in masters:
             print(f"  {master.master_id}) {master.full_name} - {master.phone}")
+        print()
 
 # вывести услугу по id
 def show_service_details(session: Session, service_id: int) -> Optional[Service]:
@@ -120,8 +128,10 @@ def show_service_details(session: Session, service_id: int) -> Optional[Service]
         category = session.query(ServiceCategory).filter_by(category_id=service.category_id).first()
         if category:
             print("Категория: " + category.category_name)
+            print()
         else:
             print("Категория: не найдена")
+            print()
         return service
     else:
         print("Услуга не найдена")

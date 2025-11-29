@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -9,6 +9,8 @@ class ServiceCategory(Base):
     
     category_id = Column(Integer, primary_key=True)
     category_name = Column(String(100), unique=True, nullable=False)
+
+    services = relationship("Service", back_populates="category")
 
     def __repr__(self):
         return ("Category()" + self.category_name + ")")
@@ -22,6 +24,8 @@ class Service(Base):
     duration_minutes = Column(Integer, nullable=False)
     price = Column(Integer, nullable=False)
     category_id = Column(Integer, ForeignKey('service_categories.category_id'))
+
+    category = relationship("ServiceCategory", back_populates="services")
 
     def __repr__(self):
         #возвращает название, длительность и стоимость услуги

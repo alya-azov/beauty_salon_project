@@ -1,128 +1,223 @@
-from models.services import Service, ServiceCategory
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import List, Optional
+from models.services import Service, ServiceCategory
+from exceptions import ServiceError
 
-# добавить новую услугу
-def add_service(session: Session, service_name: str, duration_minutes: int, 
-                price: int, category_id: int) -> Optional[Service]:
-    # Если категории нет в списке - спрашиваем подтверждение
-    category = session.query(ServiceCategory).filter_by(category_id=category_id).first()
-    if not category:
-        print("Добавление услуги отменено, нет такой категории")
-        return None
+# для управления услугами в бд
+class ServiceService:
+    def __init__(self, session: Session):
+        self.session = session
     
-    new_service = Service(service_name=service_name, duration_minutes=duration_minutes,
-                          price=price, category_id=category_id)
-
-    session.add(new_service)
-    session.commit()
-    print(f"Новая услуга добавлена: {service_name}")
-    print()
-    return new_service
-
-# удалить услугу
-def delete_service(session: Session, service_id: int) -> bool:
-    service = session.query(Service).filter(Service.service_id == service_id).first()
-    if service:
-        session.delete(service)
-        session.commit()
-        print("Услуга удалена!")
-        print()
-        return True
-    return False
-
-# обновить данные по услуге
-def update_service(session: Session, service_id: int, field: str, value: str) -> bool:
-    service = session.query(Service).filter(Service.service_id == service_id).first()
-    if service:
+    def create_service(self, service_name: str, duration_minutes: int, 
+                      price: int, category_id: int) -> Service:
+        """
+        Создает новую услугу
+        
+        Args:
+            service_name: Название услуги
+            duration_minutes: Длительность в минутах
+            price: Цена услуги
+            category_id: ID категории
+            
+        Returns:
+            Service: Созданная услуга
+            
+        Raises:
+            ServiceError: Если категория не найдена или ошибка создания
+        """
+        category = self.session.query(ServiceCategory).filter_by(category_id=category_id).first()
+        if not category:
+            raise ServiceError(f"Категория с ID {category_id} не найдена")
+        
+        if duration_minutes % 30 != 0:
+            raise ServiceError(f"Длительность услуги должна быть кратной 30 минутам.")
+        
+        try:
+            new_service = Service(
+                service_name=service_name,
+                duration_minutes=duration_minutes,
+                price=price,
+                category_id=category_id
+            )
+            
+            self.session.add(new_service)
+            self.session.commit()
+            return new_service
+            
+        except Exception as e:
+            self.session.rollback()
+            raise ServiceError(f"Ошибка при создании услуги: {e}")
+    
+    def get_service_by_id(self, service_id: int) -> Optional[Service]:
+        """
+        Находит услугу по ID
+        
+        Args:
+            service_id: ID услуги
+            
+        Returns:
+            Optional[Service]: Найденная услуга или None
+        """
+        return self.session.query(Service).filter(Service.service_id == service_id).first()
+    
+    def get_all_services(self) -> List[Service]:
+        """
+        Возвращает все услуги
+        
+        Returns:
+            List[Service]: Список всех услуг
+        """
+        return self.session.query(Service).all()
+    
+    def get_services_by_category(self, category_id: int) -> List[Service]:
+        """
+        Находит услуги по категории
+        
+        Args:
+            category_id: ID категории
+            
+        Returns:
+            List[Service]: Список услуг с указанной категорией
+        """
+        return self.session.query(Service).filter(Service.category_id == category_id).all()
+    
+    def update_service(self, service_id: int, field: str, value: str) -> Service:
+        """
+        Обновляет поле услуги
+        
+        Args:
+            service_id: ID услуги
+            field: Поле для обновления
+            value: Новое значение
+            
+        Returns:
+            Service: Обновленная услуга
+            
+        Raises:
+            ServiceError: Если услуга не найдена или ошибка обновления
+        """
+        service = self.get_service_by_id(service_id)
+        if not service:
+            raise ServiceError(f"Услуга с ID {service_id} не найдена")
+        
+        if not hasattr(service, field):
+            raise ServiceError(f"Поле {field} не существует в модели Service")
+        
         if field == 'category_id':
-            category = session.query(ServiceCategory).filter_by(category_id=value).first()
+            category = self.session.query(ServiceCategory).filter_by(category_id=value).first()
             if not category:
-                print("Категории с ID " + str(value) + " не существует!")
-                return False
-
-        setattr(service, field, value)
-        session.commit()
-        print("Данные обновлены!")
-        print()
-        return True
-    return False
-
-# вывести услугу по id
-def service_by_id(session: Session, service_id: int) -> Optional[Service]:
-    service = session.query(Service).filter(Service.service_id == service_id).first()
-    if service:
-        print("id: " + str(service.service_id))
-        print("Название: " + service.service_name)
-        print("Длительность: " + service.good_format_time)
-        print("Цена: " + str(service.price) + " руб.")
-        category = session.query(ServiceCategory).filter_by(category_id=service.category_id).first()
-        if category:
-            print("Категория: " + category.category_name)
-        else:
-            print("Категория: не найдена")
-        return service
-    else:
-        print("Услуга не найдена")
-        return None
-    print()
-
-# вывести все услуги
-def get_all_services(session: Session) -> None:
-    services = session.query(Service).all()
-    for service in services:
-        print(str(service.service_id) + ") " + service.service_name + " - " + 
-              str(service.price) + " руб., " + service.good_format_time)
-    print()
-
-# вывести услуги по категории
-def get_services_by_category(session: Session, category_id: int) -> None:
-    services = session.query(Service).filter(Service.category_id == category_id).all()
-    category = session.query(ServiceCategory).filter_by(category_id=category_id).first()
-
-    if category:
-        print("Услуги категории: " + category.category_name)
-        for service in services:
-            print(str(service.service_id) + ") " + service.service_name + " - " + str(service.price) + " руб.")
-        print()
-    else:
-        print("Категория не найдена") 
-
-# вывести все возможные категории
-def get_all_categories(session: Session) -> None:
-    categories = session.query(ServiceCategory).all()
-    for category in categories:
-        print(str(category.category_id) + ") " + category.category_name)
-    print()
-
-# добавить новый тип категории
-def add_new_category(session: Session, category_name: str) -> bool:
-    new_c = session.query(ServiceCategory).filter_by(category_name=category_name).first()
-    if new_c:
-        print("Категория '" + category_name + "' уже существует")
-        return False
+                raise ServiceError(f"Категории с ID {value} не существует")
+        
+        try:
+            setattr(service, field, value)
+            self.session.commit()
+            return service
+        except Exception as e:
+            self.session.rollback()
+            raise ServiceError(f"Ошибка при обновлении услуги: {e}")
     
-    new_category = ServiceCategory(category_name=category_name)
-    session.add(new_category)
-    session.commit()
-    print("Новая категория '" + category_name + "' добавлена!")
-    return True
-
-# удалить категорию
-def delete_category(session: Session, category_id: int) -> bool:
-    category = session.query(ServiceCategory).filter_by(category_id=category_id).first()
-    if not category:
-        print("Категория с ID " + str(category_id) + " не найдена")
+    def delete_service(self, service_id: int) -> bool:
+        """
+        Удаляет услугу по ID
+        
+        Args:
+            service_id: ID услуги для удаления
+            
+        Returns:
+            bool: True если услуга удалена, False если не найдена
+            
+        Raises:
+            ServiceError: Если ошибка при удалении
+        """
+        service = self.get_service_by_id(service_id)
+        if service:
+            try:
+                self.session.delete(service)
+                self.session.commit()
+                return True
+            except Exception as e:
+                self.session.rollback()
+                raise ServiceError(f"Ошибка при удалении услуги: {e}")
         return False
-    
-    # проверяем есть ли услуги в этой категории
-    services_in_category = session.query(Service).filter_by(category_id=category_id).count()
-    if services_in_category > 0:
-        print("Нельзя удалить категорию! В ней есть услуги")
-        return False
-    
-    session.delete(category)
-    session.commit()
-    print("Категория '" + category.category_name + "' удалена!")
-    return True
 
+# для управления категориями услуг в бд
+class CategoryService:
+    def __init__(self, session: Session):
+        self.session = session
+    
+    def create_category(self, category_name: str) -> ServiceCategory:
+        """
+        Создает новую категорию
+        
+        Args:
+            category_name: Название категории
+            
+        Returns:
+            ServiceCategory: Созданная категория
+            
+        Raises:
+            ServiceError: Если категория уже существует или ошибка создания
+        """
+        existing_category = self.session.query(ServiceCategory).filter_by(category_name=category_name.lower().strip()).first()
+        if existing_category:
+            raise ServiceError(f"Категория '{category_name}' уже существует")
+        
+        try:
+            new_category = ServiceCategory(category_name=category_name.lower().strip())
+            self.session.add(new_category)
+            self.session.commit()
+            return new_category
+        except Exception as e:
+            self.session.rollback()
+            raise ServiceError(f"Ошибка при создании категории: {e}")
+    
+    def get_category_by_id(self, category_id: int) -> Optional[ServiceCategory]:
+        """
+        Находит категорию по ID
+        
+        Args:
+            category_id: ID категории
+            
+        Returns:
+            Optional[ServiceCategory]: Найденная категория или None
+        """
+        return self.session.query(ServiceCategory).filter_by(category_id=category_id).first()
+    
+    def get_all_categories(self) -> List[ServiceCategory]:
+        """
+        Возвращает все категории
+        
+        Returns:
+            List[ServiceCategory]: Список всех категорий
+        """
+        return self.session.query(ServiceCategory).all()
+    
+    def delete_category(self, category_id: int) -> bool:
+        """
+        Удаляет категорию по ID
+        
+        Args:
+            category_id: ID категории для удаления
+            
+        Returns:
+            bool: True если категория удалена, False если не найдена
+            
+        Raises:
+            ServiceError: Если в категории есть услуги или ошибка удаления
+        """
+        category = self.get_category_by_id(category_id)
+        if not category:
+            return False
+        
+        # Проверяем есть ли услуги в этой категории
+        services_count = self.session.query(Service).filter_by(category_id=category_id).count()
+        if services_count > 0:
+            raise ServiceError(f"Нельзя удалить категорию! В ней есть услуги")
+        
+        try:
+            self.session.delete(category)
+            self.session.commit()
+            return True
+        except Exception as e:
+            self.session.rollback()
+            raise ServiceError(f"Ошибка при удалении категории: {e}")

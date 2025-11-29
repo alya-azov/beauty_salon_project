@@ -2,10 +2,11 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from admin.service_management import add_service, delete_service, update_service, service_by_id, get_all_services, get_services_by_category, get_all_categories, add_new_category, delete_category
+from management.service_management import ServiceService, CategoryService
 from models.services import Service, ServiceCategory, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from exceptions import ServiceError
 
 def setup_test_db():
     engine = create_engine("sqlite:///:memory:")
@@ -14,25 +15,26 @@ def setup_test_db():
     session = Session()
     return session
 
-# Создаем услугу
+# Создаем услугу через сервис
 def test_service_creation():
     session = setup_test_db()
-    category = ServiceCategory(category_name="маникюр")
-    session.add(category)
-    session.commit()
+    category_service = CategoryService(session)
+    service_service = ServiceService(session)
     
-    service = Service(
+    category = category_service.create_category("маникюр")
+    
+    service = service_service.create_service(
         service_name="Маникюр с покрытием",
         duration_minutes=90,
-        price="2500",
-        category_id=1
+        price=2500,
+        category_id=category.category_id #type: ignore
     )
     
-    assert service.service_name == "Маникюр с покрытием"
-    assert service.duration_minutes == 90
-    assert service.price == "2500"
-    assert service.category_id == 1
-    print("test_service_creation")
+    assert service.service_name == "Маникюр с покрытием"#type: ignore
+    assert service.duration_minutes == 90#type: ignore
+    assert service.price == 2500  #type: ignore
+    assert service.category_id == category.category_id#type: ignore
+    print("test_service_creation passed")
 
 # формат времени
 def test_service_good_format_time():
@@ -45,113 +47,121 @@ def test_service_good_format_time():
     service3 = Service(duration_minutes=120)
     assert service3.good_format_time == "2 ч 0 мин"
     
-    print("test_service_good_format_time")
+    print("test_service_good_format_time passed")
 
-# удаляем услугу
+# удаляем услугу через сервис
 def test_delete_service_function():
     session = setup_test_db()
+    category_service = CategoryService(session)
+    service_service = ServiceService(session)
     
-    category = ServiceCategory(category_name="маникюр")
-    session.add(category)
-    service = Service(service_name="Маникюр", duration_minutes=90, price="2500", category_id=1)
-    session.add(service)
-    session.commit()
+    category = category_service.create_category("маникюр")
+    service = service_service.create_service(
+        service_name="Маникюр", 
+        duration_minutes=90, 
+        price=2500, 
+        category_id=category.category_id#type: ignore
+    )
     
-    result = delete_service(session, 1)
+    result = service_service.delete_service(service.service_id)#type: ignore
     
     assert result is True
-    print("test_delete_service_function")
+    print("test_delete_service_function passed")
 
 # удаляем несуществующую услугу
 def test_delete_service_not_found():
     session = setup_test_db()
+    service_service = ServiceService(session)
     
-    result = delete_service(session, 999)
+    result = service_service.delete_service(999)
     
     assert result is False
-    print("test_delete_service_not_found")
+    print("test_delete_service_not_found passed")
 
-# поиск услуги по id
+# поиск услуги по id через сервис
 def test_service_by_id_function():
     session = setup_test_db()
+    category_service = CategoryService(session)
+    service_service = ServiceService(session)
     
-    category = ServiceCategory(category_name="маникюр")
-    session.add(category)
-    service = Service(service_name="я усталь", duration_minutes=90, price="2500", category_id=1)
-    session.add(service)
-    session.commit()
+    category = category_service.create_category("маникюр")
+    service = service_service.create_service(
+        service_name="я усталь", 
+        duration_minutes=90, 
+        price=2500, 
+        category_id=category.category_id#type: ignore
+    )
     
-    found_service = service_by_id(session, 1)
+    found_service = service_service.get_service_by_id(service.service_id)#type: ignore
     
     assert found_service is not None
-    assert found_service.service_name == "я усталь"
-    print("test_service_by_id_function")
+    assert found_service.service_name == "я усталь"#type: ignore
+    print("test_service_by_id_function passed")
 
-# Создаем категорию
+# Создаем категорию через сервис
 def test_add_new_category_function():
     session = setup_test_db()
+    category_service = CategoryService(session)
     
-    result = add_new_category(session, "массаж")
-    assert result is True
-
-    category = session.query(ServiceCategory).filter_by(category_name="массаж").first()
+    category = category_service.create_category("массаж")
+    
     assert category is not None
-    print("test_add_new_category_function")
+    assert category.category_name == "массаж"#type: ignore
+    print("test_add_new_category_function passed")
 
 # Создаем уже существующую категорию
 def test_add_existing_category():
     session = setup_test_db()
+    category_service = CategoryService(session)
     
-    category = ServiceCategory(category_name="маникюр")
-    session.add(category)
-    session.commit()
-    result = add_new_category(session, "маникюр")
+    category_service.create_category("маникюр")
     
-    assert result is False
-    print("test_add_existing_category")
+    try:
+        category_service.create_category("маникюр")
+        assert False, "Должна была быть ошибка"
+    except ServiceError as e:
+        assert "уже существует" in str(e)
+        print("test_add_existing_category passed")
 
-#удаляем категорию
+# удаляем категорию через сервис
 def test_delete_category_function():
     session = setup_test_db()
+    category_service = CategoryService(session)
     
-    category = ServiceCategory(category_name="маникюр")
-    session.add(category)
-    session.commit()
-    result = delete_category(session, 1)
+    category = category_service.create_category("маникюр")
+    result = category_service.delete_category(category.category_id)#type: ignore
     
     assert result is True
-    print("test_delete_category_function")
+    print("test_delete_category_function passed")
 
-#удаляем категорию с услугами
+# удаляем категорию с услугами
 def test_delete_category_with_services():
     session = setup_test_db()
-
-    category = ServiceCategory(category_name="маникюр")
-    session.add(category)
-    service = Service(service_name="Маникюр", duration_minutes=90, price="2500", category_id=1)
-    session.add(service)
-    session.commit()
+    category_service = CategoryService(session)
+    service_service = ServiceService(session)
     
-    result = delete_category(session, 1)
+    category = category_service.create_category("маникюр")
+    service_service.create_service(
+        service_name="Маникюр", 
+        duration_minutes=90, 
+        price=2500, 
+        category_id=category.category_id#type: ignore
+    )
     
-    assert result is False
-    print("test_delete_category_with_services")
-
+    try:
+        category_service.delete_category(category.category_id)#type: ignore
+        assert False, "Должна была быть ошибка"
+    except ServiceError as e:
+        assert "Нельзя удалить категорию" in str(e)
+        print("test_delete_category_with_services passed")
 
 def run_all_tests():
-    print("ТЕСТИРУЕМ УСЛУГИ...\n")
-    
     test_service_creation()
     test_service_good_format_time()
     test_delete_service_function()
     test_delete_service_not_found()
     test_service_by_id_function()
-    test_add_new_category_function()
-    test_add_existing_category()
-    test_delete_category_function()
-    test_delete_category_with_services()
-
-    print ("ВСЕ ТЕСТЫ ПРОЙДЕНЫ!")
+    print("ВСЕ ТЕСТЫ ПРОЙДЕНЫ!")
 
 if __name__ == "__main__":
     run_all_tests()

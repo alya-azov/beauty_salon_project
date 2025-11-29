@@ -27,6 +27,17 @@ class MasterService:
         Raises:
             MasterError: Если не удалось создать мастера
         """
+
+        existing_phone = self.session.query(Master).filter(Master.phone == normalize_phone(phone)).first()
+        if existing_phone:
+            raise MasterError(f"Мастер с телефоном {normalize_phone(phone)} уже существует")
+    
+
+        if email:
+            existing_email = self.session.query(Master).filter(Master.email == email.lower().strip()).first()
+            if existing_email:
+                raise MasterError(f"Мастер с email {email.lower().strip()} уже существует")
+
         try:
             new_master = Master(first_name=first_name, last_name=last_name, phone=normalize_phone(phone),email=email.lower().strip(), specialty=specialty)
             
@@ -92,7 +103,7 @@ class MasterService:
             raise MasterError(f"Мастер с ID {master_id} не найден")
         
         if not hasattr(master, field.lower().strip()):
-            raise ValueError(f"Поле {field} не существует в модели Master")
+            raise ValueError(f"Поле {field} не существует у мастеров")
         
         try:
             setattr(master, field.lower().strip(), value)
@@ -123,7 +134,7 @@ class MasterService:
                 raise MasterError(f"Ошибка при удалении мастера: {e}")
         return False
 
-#ля работы со специальностями мастеров
+#для управления специальностями 
 class SpecialtyService:
     def __init__(self, session: Session):
         self.session = session
