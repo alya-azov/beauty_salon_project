@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from models.clients import Client
 from typing import Optional
-from user_interface.client_functions import create_client
 import hashlib
 
 # Данные администратора (без хэша)
@@ -59,36 +58,4 @@ def login_admin() -> bool:
         print("Неверный логин или пароль")
         return False
 
-# регистрация клиента
-def register_client(session: Session) -> Optional[Client]:
-    print("\nРегистрация нового клиента")
-    
-    first_name = input("Имя: ")
-    last_name = input("Фамилия: ")
-    phone = input("Телефон: ")
-    email = input("Email: ")
-    password = input("Пароль: ")
-    confirm_password = input("Подтвердите пароль: ")
-    
-    if password != confirm_password:
-        print("Пароли не совпадают!")
-        return None
-    
-    #приводим email к нижнему регистру
-    normalized_email = email.lower().strip()
-
-    normalized_phone = normalize_phone(phone)
-    
-    # Проверка на уникальность с нормализованными данными
-    existing_client = session.query(Client).filter((Client.email.ilike(normalized_email)) | (Client.phone == normalized_phone)).first()
-    
-    if existing_client:
-        if existing_client.email.lower() == normalized_email: #type: ignore
-            print("Клиент с таким email уже существует!")
-        else:
-            print("Клиент с таким телефоном уже существует!")
-        return None
-
-    client = create_client(session, first_name, last_name, normalized_phone, normalized_email, password)
-    return client
 

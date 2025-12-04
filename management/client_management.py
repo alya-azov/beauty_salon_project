@@ -1,130 +1,269 @@
-from models.clients import Client, SalonCard, DiscountLevel
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import List, Optional, Tuple
+from models.clients import Client, SalonCard, DiscountLevel
+from auth.authentification import normalize_phone, simple_hash
+from exceptions import ClientError
 
-# Клиент по id
-def get_client_by_id(session: Session, client_id: int) -> Optional[Client]:
-    client = session.query(Client).filter(Client.client_id == client_id).first()
-    if client:
-        print("id: " + str(client.client_id))
-        print("Имя: " + client.full_name)
-        print("Телефон: " + client.phone)
-        print("Email: " + client.email)
-        print("Тип скидочной карты: " + client.salon_card.discount_level.value)
-        print("Суммарные траты: " + str(client.salon_card.total_spent) + " руб.")
-        print()
-        return client
-    else:
-        print("Клиент не найден")
-        print()
-        return None
+# для управления клиентами в бд
+class ClientService:
+    def __init__(self, session: Session):
+        self.session = session
 
-# Клиент по номеру телефона
-def get_client_by_phone(session: Session, phone: str) -> Optional[Client]:
-    from auth.authentification import normalize_phone
-    client = session.query(Client).filter(Client.phone == normalize_phone(phone)).first()
-    if client:
-        print("id: " + str(client.client_id))
-        print("Имя: " + client.full_name)
-        print("Телефон: " + client.phone)
-        print("Email: " + client.email)
-        print("Тип скидочной карты: " + client.salon_card.discount_level.value)
-        print("Суммарные траты: " + str(client.salon_card.total_spent) + " руб.")
-        print()
-        return client
-    else:
-        print("Клиент не найден")
-        print()
-        return None
-
-# Клиент по e-mail
-def get_client_by_email(session: Session, email: str) -> Optional[Client]:
-    client = session.query(Client).filter(Client.email == email.lower().strip()).first()
-    if client:
-        print("id: " + str(client.client_id))
-        print("Имя: " + client.full_name)
-        print("Телефон: " + client.phone)
-        print("Email: " + client.email)
-        print("Тип скидочной карты: " + client.salon_card.discount_level.value)
-        print("Суммарные траты: " + str(client.salon_card.total_spent) + " руб.")
-        print()
-        return client
-    else:
-        print("Клиент не найден")
-        print()
-        return None
-
-# вывести всех клиентов
-def get_all_clients(session: Session) -> List[Client]:
-    clients = session.query(Client).all()
-    for client in clients:
-        print(str(client.client_id) + ") " + client.first_name + " " + client.last_name)
-    print()
-
-    return session.query(Client).all()
-
-# добавление покупки
-def add_purchase(session: Session, client_id: int, amount: float) -> bool:
-    client = get_client_by_id(session, client_id)
-    if client and client.salon_card:
-        discounted_amount = client.salon_card.apply_discount(amount)
-        client.salon_card.total_spent += discounted_amount
+    def create_client(self, first_name: str, last_name: str, phone: str, 
+                     email: str, password: str) -> Client:
+        """
+        Создает нового клиента
         
+        Args:
+            first_name: Имя клиента
+            last_name: Фамилия клиента
+            phone: Номер телефона
+            email: Email адрес
+            password: Пароль
+            
+        Returns:
+            Client: Созданный клиент
+            
+        Raises:
+            ClientError: Если клиент с таким телефоном или email уже существует
+        """
+        normalized_phone = normalize_phone(phone)
+        normalized_email = email.lower().strip()
+        
+        # Проверка уникальности телефона
+        existing_phone = self.session.query(Client).filter_by(phone=normalized_phone).first()
+        if existing_phone:
+            raise ClientError(f"Клиент с телефоном {phone} уже существует")
+        
+        # Проверка уникальности email (если email предоставлен)
+        if normalized_email:
+            existing_email = self.session.query(Client).filter_by(email=normalized_email).first()
+            if existing_email:
+                raise ClientError(f"Клиент с email {email} уже существует")
+        
+        try:
+            # Создаем клиента
+            new_client = Client(
+                first_name=first_name,
+                last_name=last_name,
+                phone=normalized_phone,
+                email=normalized_email,
+                password_hash=simple_hash(password)
+            )
+            
+            self.session.add(new_client)
+            self.session.flush()
+            
+            # Создаем карту лояльности
+            salon_card = SalonCard(
+                client_id=new_client.client_id,
+                discount_level=DiscountLevel.STANDARD,
+                total_spent=0.0
+            )
+            
+            self.session.add(salon_card)
+            self.session.commit()
+            
+            return new_client
+            
+        except Exception as e:
+            self.session.rollback()
+            raise ClientError(f"Ошибка при создании клиента: {e}")    
+        
+    def get_client_by_id(self, client_id: int) -> Optional[Client]:
+        """
+        Находит клиента по ID
+        
+        Args:
+            client_id: ID клиента
+            
+        Returns:
+            Optional[Client]: Найденный клиент или None
+        """
+        return self.session.query(Client).filter(Client.client_id == client_id).first()
+    
+    def get_client_by_phone(self, phone: str) -> Optional[Client]:
+        """
+        Находит клиента по номеру телефона
+        
+        Args:
+            phone: Номер телефона
+            
+        Returns:
+            Optional[Client]: Найденный клиент или None
+        """
+        normalized_phone = normalize_phone(phone)
+        if not normalized_phone:
+            return None
+        return self.session.query(Client).filter(Client.phone == normalized_phone).first()
+
+
+    def get_client_by_email(self, email: str) -> Optional[Client]:
+        """
+        Находит клиента по email
+        
+        Args:
+            email: Email адрес
+            
+        Returns:
+            Optional[Client]: Найденный клиент или None
+        """
+        normalized_email = email.lower().strip()
+        if not normalized_email:
+            return None
+        return self.session.query(Client).filter(Client.email == normalized_email).first()
+    
+    def get_all_clients(self) -> List[Client]:
+        """
+        Возвращает всех клиентов
+        
+        Returns:
+            List[Client]: Список всех клиентов
+        """
+        return self.session.query(Client).all()
+    
+    def update_client(self, client_id: int, field: str, value: str) -> Client:
+        """
+        Обновляет информацию о клиенте
+        
+        Args:
+            client_id: ID клиента
+            field: Поле для обновления
+            value: Новое значение
+            
+        Returns:
+            Client: Обновленный клиент
+            
+        Raises:
+            ClientError: Если клиент не найден или ошибка обновления
+        """
+        client = self.get_client_by_id(client_id)
+        if not client:
+            raise ClientError(f"Клиент с ID {client_id} не найден")
+        
+        if field == "password" or field == "password_hash":
+            raise ClientError("Для смены пароля используйте метод change_password")
+        
+        try:
+            if field == "phone":
+                normalized_phone = normalize_phone(value)
+                existing = self.session.query(Client).filter(Client.phone == normalized_phone, Client.client_id != client_id).first()
+                if existing:
+                    raise ClientError(f"Телефон {value} уже используется другим клиентом")
+                setattr(client, field, normalized_phone)
+                
+            elif field == "email":
+                normalized_email = value.lower().strip()
+                existing = self.session.query(Client).filter(Client.email == normalized_email, Client.client_id != client_id).first()
+                if existing:
+                    raise ClientError(f"Email {value} уже используется другим клиентом")
+                setattr(client, field, normalized_email)
+                
+            else:
+                setattr(client, field, value)
+            
+            self.session.commit()
+            return client
+            
+        except ClientError:
+            raise
+        except Exception as e:
+            self.session.rollback()
+            raise ClientError(f"Ошибка при обновлении клиента: {e}")
+        
+    def change_password(self, client_id: int, old_password: str, new_password: str) -> bool:
+        """
+        Изменяет пароль клиента
+        
+        Args:
+            client_id: ID клиента
+            old_password: Старый пароль
+            new_password: Новый пароль
+            
+        Returns:
+            bool: True если пароль изменен успешно
+        """
+        client = self.get_client_by_id(client_id)
+        if not client:
+            raise ClientError(f"Клиент с ID {client_id} не найден")
+        
+        if client.password_hash != simple_hash(old_password): #type:ignore
+            raise ClientError("Неверный старый пароль")
+        
+        client.password_hash = simple_hash(new_password)#type:ignore
+        self.session.commit()
+        return True
+
+        
+    def admin_change_password(self, client_id: int, new_password: str) -> bool:
+        """
+        Администратор изменяет пароль клиента (без проверки старого)
+        
+        Args:
+            client_id: ID клиента
+            new_password: Новый пароль
+            
+        Returns:
+            bool: True если пароль изменен успешно
+        """
+        client = self.get_client_by_id(client_id)
+        if not client:
+            raise ClientError(f"Клиент с ID {client_id} не найден")
+        
+        client.password_hash = simple_hash(new_password)#type:ignore
+        self.session.commit()
+        return True
+    
+    def delete_client(self, client_id: int) -> bool:
+        """
+        Удаляет клиента
+        
+        Args:
+            client_id: ID клиента для удаления
+            
+        Returns:
+            bool: True если клиент удален
+        """
+        client = self.get_client_by_id(client_id)
+        if not client:
+            return False
+        
+        self.session.delete(client)
+        self.session.commit()
+        return True
+
+# для управления покупками (для карты салона) в бд
+class PurchaseService:
+    def __init__(self, session: Session):
+        self.session = session
+    
+    def add_purchase(self, client_id: int, amount: float) -> Tuple[Client, float, DiscountLevel, DiscountLevel]:
+        """
+        Добавляет покупку клиенту и обновляет карту лояльности
+        
+        Args:
+            client_id: ID клиента
+            amount: Сумма покупки
+            
+        Returns:
+            Tuple[Client, float, DiscountLevel, DiscountLevel]: 
+                (клиент, сумма с учетом скидки, старый уровень, новый уровень)
+            
+        Raises:
+            ClientError: Если клиент не найден или сумма некорректна
+        """
+        if amount <= 0:
+            raise ClientError("Сумма покупки должна быть положительной")
+        
+        client = self.session.query(Client).filter(Client.client_id == client_id).first()
+        if not client or not client.salon_card:
+            raise ClientError(f"Клиент с ID {client_id} не найден или у него нет карты лояльности")
+        
+        discounted_amount = client.salon_card.apply_discount(amount)
         old_level = client.salon_card.discount_level
+        client.salon_card.total_spent += discounted_amount
         client.salon_card.upgrade_level()
         new_level = client.salon_card.discount_level
-        
-        session.commit()
-        
-        print("Покупка: " + str(discounted_amount) + " руб.")
-        print("Всего: " + str(client.salon_card.total_spent) + " руб.")
-        print("Уровень: " + new_level.value)
-        
-        if old_level != new_level:
-            print("Уровень повышен до " + new_level.value + "!")
-        
-        return True
-    return False
-
-# удаление клиента
-def delete_client(session: Session, client_id: int) -> bool:
-    client = get_client_by_id(session, client_id)
-    if client:
-        session.delete(client)
-        session.commit()
-        print("Клиент удален!")
-        return True
-    return False
-
-# смена пароля администратором
-def admin_change_client_password(session: Session) -> bool:
-    print()
-    print("Смена пароля клиента")
-    
-    client_id = input("ID клиента: ")
-    
-    # Проверяем что ввели число
-    if not client_id.isdigit():
-        print("ID должен быть числом!")
-        return False
-    
-    client_id_num = int(client_id)
-    client = session.query(Client).filter(Client.client_id == client_id_num).first()
-    
-    if not client:
-        print("Клиент с таким ID не найден!")
-        return False
-    
-    # Запрашиваем новый пароль
-    new_password = input("Новый пароль: ")
-    confirm_password = input("Подтвердите новый пароль: ")
-    
-    if new_password != confirm_password:
-        print("Пароли не совпадают!")
-        return False
-    
-    # Меняем пароль
-    client.password_hash = simple_hash(new_password)#type: ignore
-    session.commit()
-    print(f"Пароль клиента {client.full_name} успешно изменен!")
-    return True
+        self.session.commit()
+            
+        return client, discounted_amount, old_level, new_level

@@ -5,3 +5,7 @@ class MasterError(Exception):
 class ServiceError(Exception):
     """Вызывается при проблемах с работой услуг"""
     pass
+
+class ClientError(Exception):
+    """Вызывается при проблемах с работой услуг"""
+    pass

@@ -81,35 +81,71 @@ class ServiceService:
         """
         return self.session.query(Service).filter(Service.category_id == category_id).all()
     
-    def update_service(self, service_id: int, field: str, value: str) -> Service:
+    def update_service(self, service_id: int, field: str, value: str) -> Optional[Service]:
         """
         Обновляет поле услуги
-        
+    
         Args:
-            service_id: ID услуги
-            field: Поле для обновления
-            value: Новое значение
+        service_id: ID услуги
+        field: Поле для обновления
+        value: Новое значение 
             
         Returns:
-            Service: Обновленная услуга
+        Service: Обновленная услуга
             
         Raises:
-            ServiceError: Если услуга не найдена или ошибка обновления
+        ServiceError: Если услуга не найдена или ошибка обновления
         """
         service = self.get_service_by_id(service_id)
         if not service:
             raise ServiceError(f"Услуга с ID {service_id} не найдена")
-        
+    
         if not hasattr(service, field):
             raise ServiceError(f"Поле {field} не существует в модели Service")
-        
+    
+    
+        # Валидация для поля category_id
         if field == 'category_id':
-            category = self.session.query(ServiceCategory).filter_by(category_id=value).first()
-            if not category:
-                raise ServiceError(f"Категории с ID {value} не существует")
-        
+            try:
+                category_id_int = int(value)
+                category = self.session.query(ServiceCategory).filter_by(category_id=category_id_int).first()
+                if not category:
+                    raise ServiceError(f"Категории с ID {category_id_int} не существует")
+                n_value = category_id_int
+            except ValueError:
+                raise ServiceError(f"ID категории должно быть числом")
+    
+        # Валидация для поля duration_minutes
+        elif field == 'duration_minutes':
+            try:
+                duration_int = int(value)
+                if duration_int <= 0:
+                    raise ServiceError(f"Длительность должна быть положительным числом")
+                if duration_int % 30 != 0:
+                    raise ServiceError(f"Длительность услуги должна быть кратной 30 минутам")
+                n_value = duration_int
+            except ValueError:
+                raise ServiceError(f"Длительность должна быть числом")
+    
+        # Валидация для поля price
+        elif field == 'price':
+            try:
+                price_int = int(value)
+                if price_int <= 0:
+                    raise ServiceError(f"Цена должна быть ")
+                n_value = price_int
+            except ValueError:
+                raise ServiceError(f"Цена должна быть числом")
+    
+        # Валидация для поля service_name
+        elif field == 'service_name':
+            if not str(value).strip():
+                raise ServiceError(f"Название услуги не может быть пустым")
+            n_value = str(value).strip()
+
+
         try:
-            setattr(service, field, value)
+            setattr(service, field, n_value)
             self.session.commit()
             return service
         except Exception as e:

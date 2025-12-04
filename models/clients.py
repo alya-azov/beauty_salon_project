@@ -1,7 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Float, Enum, ForeignKey, Integer
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, declarative_base
-import uuid
 from datetime import datetime
 import enum
 
@@ -25,18 +23,29 @@ class SalonCard(Base):
     
     def __repr__(self):
         return "SalonCard (client_id=" + str(self.client_id) + " level=" + self.discount_level.value + " spent=" + str(self.total_spent) + ")"
-    
-    #повысить уровень карты, при достижении нужной суммы
+
     def upgrade_level(self):
-        if self.total_spent >= 30000 and self.discount_level != DiscountLevel.PLATINUM: #type: ignore
+        """
+        Повышает уровень карты при достижении нужной суммы
+        """
+        if self.total_spent >= 30000: #type: ignore
             self.discount_level = DiscountLevel.PLATINUM
-        elif self.total_spent >= 15000 and self.discount_level not in [DiscountLevel.PLATINUM, DiscountLevel.GOLD]:#type: ignore
+        elif self.total_spent >= 15000:#type: ignore
             self.discount_level = DiscountLevel.GOLD
-        elif self.total_spent >= 5000 and self.discount_level == DiscountLevel.STANDARD:#type: ignore
+        elif self.total_spent >= 5000:#type: ignore
             self.discount_level = DiscountLevel.SILVER
     
     #применение скидки к сумме
     def apply_discount(self, amount: float) -> float:
+        """
+        Применяет скидку к сумме покупки в зависимости от уровня карты
+        
+        Args:
+            amount: Исходная сумма покупки
+            
+        Returns:
+            float: Сумма с учетом скидки
+        """
         discount_rates = {
             DiscountLevel.STANDARD: 0.0,
             DiscountLevel.SILVER: 0.03,

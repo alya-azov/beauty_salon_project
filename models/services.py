@@ -29,7 +29,7 @@ class Service(Base):
 
     def __repr__(self):
         #возвращает название, длительность и стоимость услуги
-        return ("Услуга(" + self.service_name + " " + str(self.price) + " руб. " + str(self.specialty) + " мин.)")
+        return ("Услуга(" + self.service_name + " " + str(self.price) + " руб. " + str(self.duration_minutes) + " мин.)")
     
     @property
     def good_format_time(self) -> str:
