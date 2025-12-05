@@ -9,3 +9,7 @@ class ServiceError(Exception):
 class ClientError(Exception):
     """Вызывается при проблемах с работой услуг"""
     pass
+
+class ScheduleError(Exception):
+    """Вызывается при проблемах с работой услуг"""
+    pass

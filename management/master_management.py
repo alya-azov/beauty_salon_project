@@ -8,9 +8,34 @@ from auth.authentification import normalize_phone
 class MasterService:    
     def __init__(self, session: Session):
         self.session = session
-    
-    def create_master(self, first_name: str, last_name: str, phone: str, 
-                     email: str, specialty: str) -> Master:
+
+    def add_categories_to_master(self, master_id: int, category_ids: List[int]) -> None:
+        """
+        Добавляет категории услуг мастеру
+        
+        Args:
+            master_id: ID мастера
+            category_ids: Список ID категорий
+        """
+        from models.services import ServiceCategory
+        
+        master = self.session.query(Master).filter_by(master_id=master_id).first()
+        if not master:
+            raise ValueError(f"Мастер с ID {master_id} не найден")
+        
+        categories = self.session.query(ServiceCategory).filter(ServiceCategory.category_id.in_(category_ids)).all()
+        
+        if len(categories) != len(category_ids):
+            found_ids = [c.category_id for c in categories]
+            missing = [c_id for c_id in category_ids if c_id not in found_ids]
+            raise ValueError(f"Категории с ID {missing} не найдены")
+        
+
+        for category in categories:
+            if category not in master.service_categories:
+                master.service_categories.append(category)
+
+    def create_master(self, first_name: str, last_name: str, phone: str, email: str, specialty: str, category_ids: Optional[List[int]] = None) -> Master:
         """
         Создает нового мастера в базе данных
         
@@ -23,9 +48,6 @@ class MasterService:
             
         Returns:
             Master: Созданный объект мастера
-            
-        Raises:
-            MasterError: Если не удалось создать мастера
         """
 
         existing_phone = self.session.query(Master).filter(Master.phone == normalize_phone(phone)).first()
@@ -38,16 +60,15 @@ class MasterService:
             if existing_email:
                 raise MasterError(f"Мастер с email {email.lower().strip()} уже существует")
 
-        try:
-            new_master = Master(first_name=first_name, last_name=last_name, phone=normalize_phone(phone),email=email.lower().strip(), specialty=specialty)
+        new_master = Master(first_name=first_name, last_name=last_name, phone=normalize_phone(phone),email=email.lower().strip(), specialty=specialty)
+        self.session.add(new_master)
+        self.session.flush()
+        
+        if category_ids:
+            self.add_categories_to_master(new_master.master_id, category_ids) #type: ignore
             
-            self.session.add(new_master)
-            self.session.commit()
-            return new_master
-            
-        except Exception as e:
-            self.session.rollback()
-            raise MasterError(f"Ошибка при создании мастера: {e}")
+        self.session.commit()
+        return new_master
     
     def get_master_by_id(self, master_id: int) -> Optional[Master]:
         """

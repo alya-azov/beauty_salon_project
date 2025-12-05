@@ -1,9 +1,8 @@
 from sqlalchemy import Column, String, DateTime, Float, Enum, ForeignKey, Integer
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
-
-Base = declarative_base()
+from models.base import Base
 
 class DiscountLevel(enum.Enum):
     STANDARD = "STANDARD"
@@ -67,6 +66,7 @@ class Client(Base):
     password_hash = Column(String(255), nullable=False)
     
     salon_card = relationship("SalonCard", back_populates="client", uselist=False, cascade="all, delete-orphan")
+    appointments = relationship("Appointment", back_populates="client", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"Client({self.first_name} {self.last_name} - {self.email})"

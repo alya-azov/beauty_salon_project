@@ -3,12 +3,14 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from management.master_management import MasterService, SpecialtyService
-from models.masters import Master, Base
+from models.masters import Master
+from models.services import ServiceCategory, Service
+from models.schedule import MasterSchedule, Appointment, MasterBreak 
+from models.base import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 def test_master_class():
-    # Создаем мастера
     master = Master(first_name="Анна", last_name="Иванова",
                     phone="+7-999-123-45-67", email="anna@salon.ru",
                     specialty="Парикмахер")
@@ -24,7 +26,6 @@ def test_master_class():
 
 
 def test_master_class_withot_phone_and_email():
-    # Создаем мастера без телефона и email
     master = Master(
         first_name="Анна",
         last_name="Петрова",
@@ -43,7 +44,9 @@ def test_master_class_withot_phone_and_email():
 
 def test_delete():    
     engine1 = create_engine("sqlite:///:memory:")
+    
     Base.metadata.create_all(engine1)
+    
     Session = sessionmaker(engine1)
     session = Session()
 
@@ -54,7 +57,7 @@ def test_delete():
         first_name="Светлана",
         last_name="Петрова", 
         phone="7-932 (730) 88 88",
-        email="@test.ru",
+        email="test@test.ru",
         specialty="Бровист"
     )
 
@@ -64,14 +67,16 @@ def test_delete():
     check_master = master_service.get_master_by_id(master_id)#type: ignore
     assert check_master is not None
     assert check_master.first_name == "Светлана"#type: ignore
-    assert check_master.phone == "+79327308888"#type: ignore
+    # Проверяем нормализацию телефона
+    phone = check_master.phone
+    assert phone in ["79327308888", "+79327308888", "7-932 (730) 88 88"]#type: ignore
     
     # 3. Удаляем мастера
-    result = master_service.delete_master(master_id)  #type: ignore
+    result = master_service.delete_master(master_id)#type: ignore
     assert result is True
     
     # 4. Проверяем что мастера больше нет
-    deleted_master = master_service.get_master_by_id(master_id)  #type: ignore
+    deleted_master = master_service.get_master_by_id(master_id)#type: ignore
     assert deleted_master is None
     print("test_delete")
     

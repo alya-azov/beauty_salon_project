@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
-
-Base = declarative_base()
+from sqlalchemy.orm import relationship
+from models.base import Base, master_service_category
 
 #класс для категорий услуг
 class ServiceCategory(Base):
@@ -11,9 +10,10 @@ class ServiceCategory(Base):
     category_name = Column(String(100), unique=True, nullable=False)
 
     services = relationship("Service", back_populates="category")
+    masters = relationship("Master", secondary=master_service_category, back_populates="service_categories")
 
     def __repr__(self):
-        return ("Category()" + self.category_name + ")")
+        return ("Category(" + self.category_name + ")")
 
 #класс для услуг
 class Service(Base):
@@ -26,6 +26,9 @@ class Service(Base):
     category_id = Column(Integer, ForeignKey('service_categories.category_id'))
 
     category = relationship("ServiceCategory", back_populates="services")
+
+    # В класс Service добавить:
+    appointments = relationship("Appointment", back_populates="service", cascade="all, delete-orphan")
 
     def __repr__(self):
         #возвращает название, длительность и стоимость услуги

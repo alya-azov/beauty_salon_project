@@ -2,8 +2,14 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from auth.authentification import simple_hash, normalize_phone
+from models.clients import Client, SalonCard, DiscountLevel
+from models.base import Base
+from models.services import ServiceCategory, Service
+from models.masters import Master
+from management.client_management import ClientService, PurchaseService
 from management.service_management import ServiceService, CategoryService
-from models.services import Service, ServiceCategory, Base
+from models.schedule import MasterSchedule, Appointment, MasterBreak 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from exceptions import ServiceError

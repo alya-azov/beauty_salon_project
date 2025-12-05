@@ -3,8 +3,12 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from auth.authentification import simple_hash, normalize_phone
-from models.clients import Client, SalonCard, DiscountLevel, Base
+from models.clients import Client, SalonCard, DiscountLevel
+from models.base import Base
+from models.services import ServiceCategory, Service
+from models.masters import Master
 from management.client_management import ClientService, PurchaseService
+from models.schedule import MasterSchedule, Appointment, MasterBreak 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -23,7 +27,7 @@ def test_client_creation():
         password_hash=simple_hash("pass123")
     )
     assert client.full_name == "Анна Иванова"
-    assert client.phone == "+79991234567" 
+    assert client.phone == "+79991234567" #type: ignore
     print("test_client_creation")
 
 def test_salon_card():
@@ -36,7 +40,7 @@ def test_salon_card():
     assert card.apply_discount(1000) == 970
     
     # Тест апгрейда
-    card.total_spent = 6000
+    card.total_spent = 6000#type: ignore
     card.upgrade_level()
     assert card.discount_level == DiscountLevel.SILVER
     print("test_salon_card")
@@ -60,16 +64,16 @@ def test_client_service():
         password="pass123"
     )
     
-    assert client.phone == "+79112223344" 
-    assert client.email == "maria@test.ru"
+    assert client.phone == "+79112223344" #type: ignore
+    assert client.email == "maria@test.ru"#type: ignore
     
     # Обновление данных через сервис
     updated_client = client_service.update_client(
-        client_id=client.client_id,
+        client_id=client.client_id,#type: ignore
         field="phone",
         value="+7-922-444-55-66"
     )
-    assert updated_client.phone == "+79224445566"
+    assert updated_client.phone == "+79224445566"#type: ignore
     
     session.close()
     print("test_client_service")
@@ -97,7 +101,7 @@ def test_purchase_service():
     # Проверяем поиск по телефону
     found_client = client_service.get_client_by_phone("+7-911-111-11-11")
     assert found_client is not None
-    assert found_client.client_id == client.client_id
+    assert found_client.client_id == client.client_id#type: ignore
     
     # Проверяем, что карта создалась
     assert client.salon_card is not None
@@ -106,7 +110,7 @@ def test_purchase_service():
     
     # Добавление покупки
     purchase_result = purchase_service.add_purchase(
-        client_id=client.client_id,
+        client_id=client.client_id,#type: ignore
         amount=5000.0
     )
     
@@ -119,11 +123,11 @@ def test_purchase_service():
     assert client.salon_card.total_spent == 5000.0
     
     # Проверяем удаление клиента
-    deleted = client_service.delete_client(client.client_id)
+    deleted = client_service.delete_client(client.client_id)#type: ignore
     assert deleted is True
     
     # Проверяем что клиент действительно удален
-    deleted_client = client_service.get_client_by_id(client.client_id)
+    deleted_client = client_service.get_client_by_id(client.client_id)#type: ignore
     assert deleted_client is None
     
     session.close()
