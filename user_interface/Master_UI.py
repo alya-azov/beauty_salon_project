@@ -37,10 +37,13 @@ class MasterUI:
         Args:
             masters: Список мастеров для отображения
         """
-
+        print("\n" + "=" * 40)
+        print("ВСЕ МАСТЕРЫ")
+        print("=" * 40)
         for master in masters:
             print(f"  {master.master_id}) {master.full_name} - {master.specialty}")
             print()
+        print("=" * 40)
     
     @staticmethod
     def show_master_created(master: Master) -> None:

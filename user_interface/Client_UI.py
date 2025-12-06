@@ -145,37 +145,3 @@ class PurchaseUI:
         """
         print(f"Ошибка при добавлении покупки: {error_message}")
         print()
-
-class AuthUI:
-    """Класс для вывода информации аутентификации"""
-    
-    @staticmethod
-    def show_login_prompt() -> Tuple[str, str]:
-        """
-        Запрашивает данные для входа
-        
-        Returns:
-            Tuple[str, str]: (телефон/email, пароль)
-        """
-        print("ВХОД В СИСТЕМУ")
-        print()
-        login = input("Телефон или email: ").strip()
-        password = input("Пароль: ").strip()
-        return login, password
-    
-    @staticmethod
-    def show_login_success(client: Client) -> None:
-        """
-        Показывает сообщение об успешном входе
-        
-        Args:
-            client: Авторизованный клиент
-        """
-        print(f"Добро пожаловать, {client.first_name}!")
-        print()
-    
-    @staticmethod
-    def show_login_failed() -> None:
-        """Показывает сообщение о неудачном входе"""
-        print("Неверный телефон/email или пароль")
-        print()

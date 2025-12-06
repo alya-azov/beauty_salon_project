@@ -69,8 +69,7 @@ class ScheduleService:
         self.session.commit()
         return master_break
 
-    def get_master_schedule(self, master_id: int, start_date: date, 
-                           end_date: date) -> List[MasterSchedule]:
+    def get_master_schedule(self, master_id: int, start_date: date, end_date: date) -> List[MasterSchedule]:
         """
         Получает расписание мастера на период
         
@@ -85,6 +84,21 @@ class ScheduleService:
         return self.session.query(MasterSchedule).filter(MasterSchedule.master_id == master_id, MasterSchedule.work_date >= start_date,
                                                          MasterSchedule.work_date <= end_date).order_by(MasterSchedule.work_date).all()
     
+    def get_schedule_by_id(self, schedule_id: int) -> Optional[MasterSchedule]:
+        """Получает расписание по его ID"""
+        return self.session.query(MasterSchedule).filter_by(schedule_id=schedule_id).first()
+
+    def get_schedule_by_date(self, master_id: int, work_date: date) -> Optional[MasterSchedule]:
+        """Получает расписание мастера на конкретную дату"""
+        return self.session.query(MasterSchedule).filter_by(master_id=master_id, work_date=work_date).first()
+    
+    def get_schedule_id_by_date(self, master_id: int, work_date: date) -> Optional[int]:
+        """Получает id расписания мастера на конкретную дату"""
+        schedule = self.get_schedule_by_date(master_id=master_id, work_date=work_date)
+        if schedule:
+            return schedule.schedule_id #type: ignore
+        return None
+
     def get_available_time_slots(self, schedule_id: int, service_duration: int) -> List[datetime]:
         """
         Получает доступные временные слоты для записи
@@ -299,14 +313,13 @@ class AppointmentService:
         
         return master_appointments.order_by(Appointment.start_datetime).all()
     
-    def find_available_masters(self, service_id: int, target_date: date, preferred_time: Optional[time]) -> List[Master]:
+    def find_available_masters(self, service_id: int, target_date: date) -> List[Master]:
         """
         Ищет мастеров, доступных для услуги на указанную дату
         
         Args:
             service_id: ID услуги
             target_date: Дата записи
-            preferred_time: Предпочтительное время (опционально)
             
         Returns:
             List[Master]: Список доступных мастеров
@@ -328,14 +341,5 @@ class AppointmentService:
             time_slots = schedule_service.get_available_time_slots(schedule_id=schedule.schedule_id, service_duration=service.duration_minutes)#type:ignore
             
             if not time_slots:
-                continue
-
-            if preferred_time:
-                for slot in time_slots:
-                    if slot.time() >= preferred_time:
-                        available_masters.append(master)
-                        break
-            else:
-                available_masters.append(master)
-        
+                continue       
         return available_masters

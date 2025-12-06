@@ -1,7 +1,23 @@
 from typing import Tuple
 from models.clients import Client, DiscountLevel
-from auth.authentification import format_phone
 from exceptions import ClientError
+
+# Нормализация телефона
+def normalize_phone(phone_str: str) -> str:
+    # Удаляем все нецифровые символы 
+    cleaned = ''.join(c for c in phone_str if c.isdigit() or c == '+')
+        
+    # Заменяем 7 на 8 если номер начинается с 7
+    if cleaned.startswith('7') or cleaned.startswith('8'):
+        cleaned = '+7' + cleaned[1:]
+    return cleaned    
+
+#для красивого вывода номера
+def format_phone(phone_str: str) -> str:
+    normalized = normalize_phone(phone_str)
+    if len(normalized) == 12 and normalized.startswith('+7'):
+        return f"+7 ({normalized[2:5]}) {normalized[5:8]}-{normalized[8:10]}-{normalized[10:]}"
+    return normalized
 
 class AuthUI:
     """Класс для отображения интерфейса аутентификации"""

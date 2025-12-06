@@ -119,7 +119,6 @@ class CategoryUI:
     
         for category in categories:
             print(f"  {category.category_id}) {category.category_name}")
-            print()
     
     @staticmethod
     def show_category_created(category: ServiceCategory) -> None:

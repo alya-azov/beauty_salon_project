@@ -70,6 +70,11 @@ class MasterService:
         self.session.commit()
         return new_master
     
+    def get_master_name_by_id(self, master_id: int) -> Optional[str]:
+        """Получает имя мастера по ID"""
+        master = self.session.query(Master).filter_by(master_id=master_id).first()
+        return master.full_name if master else None
+    
     def get_master_by_id(self, master_id: int) -> Optional[Master]:
         """
         Находит мастера по ID

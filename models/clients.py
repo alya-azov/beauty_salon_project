@@ -62,7 +62,7 @@ class Client(Base):
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     phone = Column(String(20), nullable=False, unique=True)
-    email = Column(String(100), unique=True)
+    email = Column(String(100), unique=True, nullable=True)
     password_hash = Column(String(255), nullable=False)
     
     salon_card = relationship("SalonCard", back_populates="client", uselist=False, cascade="all, delete-orphan")

@@ -28,18 +28,20 @@ class ClientService:
             ClientError: Если клиент с таким телефоном или email уже существует
         """
         normalized_phone = normalize_phone(phone)
-        normalized_email = email.lower().strip()
+        normalized_email = email.lower().strip() if email else None
         
         # Проверка уникальности телефона
         existing_phone = self.session.query(Client).filter_by(phone=normalized_phone).first()
         if existing_phone:
             raise ClientError(f"Клиент с телефоном {phone} уже существует")
         
-        # Проверка уникальности email (если email предоставлен)
+        # Проверка уникальности email 
         if normalized_email:
             existing_email = self.session.query(Client).filter_by(email=normalized_email).first()
             if existing_email:
                 raise ClientError(f"Клиент с email {email} уже существует")
+        else:
+            normalized_email = None
         
         try:
             # Создаем клиента
@@ -97,21 +99,6 @@ class ClientService:
             return None
         return self.session.query(Client).filter(Client.phone == normalized_phone).first()
 
-
-    def get_client_by_email(self, email: str) -> Optional[Client]:
-        """
-        Находит клиента по email
-        
-        Args:
-            email: Email адрес
-            
-        Returns:
-            Optional[Client]: Найденный клиент или None
-        """
-        normalized_email = email.lower().strip()
-        if not normalized_email:
-            return None
-        return self.session.query(Client).filter(Client.email == normalized_email).first()
     
     def get_all_clients(self) -> List[Client]:
         """
