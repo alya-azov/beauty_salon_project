@@ -6,11 +6,6 @@ from models.base import Base
 from auth.authentification import login_admin, simple_hash, login_client
 from user_interface.Auth_UI import AuthUI, normalize_phone, format_phone
 
-from models import clients
-from models import masters
-from models import services
-from models import schedule
-
 from models.clients import Client, SalonCard, DiscountLevel
 from models.services import ServiceCategory, Service
 from models.masters import Master
