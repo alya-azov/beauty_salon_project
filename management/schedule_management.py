@@ -156,6 +156,71 @@ class ScheduleService:
                 continue
         
         return available_slots
+    
+    def remove_break(self, break_id: int) -> bool:
+        """
+        Удаляет перерыв по ID
+        
+        Args:
+            break_id: ID перерыва
+            
+        Returns:
+            bool: True если удален, False если не найден
+        """
+        master_break = self.session.query(MasterBreak).filter_by(break_id=break_id).first()
+        if not master_break:
+            return False
+        
+        self.session.delete(master_break)
+        self.session.commit()
+        return True
+    
+    def get_break_by_id(self, break_id: int) -> Optional[MasterBreak]:
+        """Получает перерыв по ID"""
+        return self.session.query(MasterBreak).filter_by(break_id=break_id).first()
+    
+    def bulk_add_schedule(self, master_id: int, start_date: date, end_date: date, start_time: time, end_time: time, 
+                         weekdays: Optional[List[int]] = None) -> List[MasterSchedule]:
+        """
+        Массовое добавление расписания на период
+        
+        Args:
+            master_id: ID мастера
+            start_date: Начальная дата
+            end_date: Конечная дата
+            start_time: Время начала работы
+            end_time: Время окончания работы
+            weekdays: Список дней недели (0-пн, 1-вт, ... 6-вс). None = все дни
+            
+        Returns:
+            List[MasterSchedule]: Список созданных расписаний
+        """
+        master = self.session.query(Master).filter_by(master_id=master_id).first()
+        if not master:
+            raise ScheduleError(f"Мастер с ID {master_id} не найден")
+        
+        if start_date > end_date:
+            raise ScheduleError("Начальная дата должна быть раньше конечной")
+        
+        if start_time >= end_time:
+            raise ScheduleError("Время начала должно быть раньше времени окончания")
+        
+        created_schedules = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            if weekdays is None or current_date.weekday() in weekdays:
+                existing = self.session.query(MasterSchedule).filter_by(master_id=master_id, work_date=current_date).first()
+                if not existing:
+                    schedule = MasterSchedule(master_id=master_id, work_date=current_date, start_time=start_time, end_time=end_time, is_day_off=False)
+                    
+                    self.session.add(schedule)
+                    created_schedules.append(schedule)
+            
+            current_date += timedelta(days=1)
+        
+        self.session.commit()
+        return created_schedules
 
 # для управления записями в бд
 class AppointmentService:
@@ -228,6 +293,47 @@ class AppointmentService:
         self.session.add(appointment)
         self.session.commit()
         return appointment
+    
+    def update_appointment_status(self, appointment_id: int, new_status: AppointmentStatus) -> bool:
+        """
+        Обновляет статус записи
+        
+        Args:
+            appointment_id: ID записи
+            new_status: Новый статус
+            
+        Returns:
+            bool: True если статус обновлен, False если запись не найдена
+        """
+        appointment = self.session.query(Appointment).filter_by(appointment_id=appointment_id).first()
+        if not appointment:
+            return False
+        
+        appointment.status = new_status#type:ignore
+        self.session.commit()
+        return True
+    
+    # в классе AppointmentService добавляем метод:
+
+    def add_note_to_appointment(self, appointment_id: int, note: str) -> bool:
+        """
+        Добавляет или обновляет заметку к записи
+    
+        Args:
+            appointment_id: ID записи
+            note: Новая заметка
+        
+        Returns:
+            bool: True если заметка обновлена, False если запись не найдена
+        """
+        appointment = self.session.query(Appointment).filter_by(appointment_id=appointment_id).first()
+        if not appointment:
+            return False
+    
+        appointment.notes = note.strip() #type:ignore
+        self.session.commit()
+        return True
+
 
     def client_cancel_appointment(self, appointment_id: int, client_id: int) -> bool:
         """
@@ -275,7 +381,7 @@ class AppointmentService:
         self.session.commit()
         return True
 
-    def get_client_appointments(self, client_id: int, status: Optional[AppointmentStatus]) -> List[Appointment]:
+    def get_client_appointments(self, client_id: int, status: Optional[AppointmentStatus] = None) -> List[Appointment]:
         """
         Получает записи клиента
         
@@ -342,4 +448,35 @@ class AppointmentService:
             
             if not time_slots:
                 continue       
+
+            available_masters.append(master)
         return available_masters
+    
+    def get_all_appointments(self, status: Optional[AppointmentStatus] = None, start_date: Optional[date] = None, 
+                             end_date: Optional[date] = None) -> List[Appointment]:
+        """
+        Получает все записи с фильтрами
+        
+        Args:
+            status: Фильтр по статусу
+            start_date: Начальная дата
+            end_date: Конечная дата
+            
+        Returns:
+            List[Appointment]: Список записей
+        """
+        query = self.session.query(Appointment)
+        
+        if status:
+            query = query.filter_by(status=status)
+        
+        if start_date:
+            start_datetime = datetime.combine(start_date, time(0, 0))
+            query = query.filter(Appointment.start_datetime >= start_datetime)
+        
+        if end_date:
+            end_datetime = datetime.combine(end_date, time(23, 59))
+            query = query.filter(Appointment.start_datetime <= end_datetime)
+        
+        return query.order_by(Appointment.start_datetime).all()
+    

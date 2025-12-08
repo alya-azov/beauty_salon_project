@@ -42,7 +42,6 @@ class MasterUI:
         print("=" * 40)
         for master in masters:
             print(f"  {master.master_id}) {master.full_name} - {master.specialty}")
-            print()
         print("=" * 40)
     
     @staticmethod
@@ -119,25 +118,4 @@ class SpecialtyUI:
         for master in masters:
             print(f"  {master.master_id}) {master.full_name} - {master.phone}")
         print()
-
-# вывести услугу по id
-def show_service_details(session: Session, service_id: int) -> Optional[Service]:
-    service = session.query(Service).filter(Service.service_id == service_id).first()
-    if service:
-        print("id: " + str(service.service_id))
-        print("Название: " + service.service_name)
-        print("Длительность: " + service.good_format_time)
-        print("Цена: " + str(service.price) + " руб.")
-        category = session.query(ServiceCategory).filter_by(category_id=service.category_id).first()
-        if category:
-            print("Категория: " + category.category_name)
-            print()
-        else:
-            print("Категория: не найдена")
-            print()
-        return service
-    else:
-        print("Услуга не найдена")
-        return None
-    print()
 

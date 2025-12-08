@@ -42,7 +42,6 @@ class ServiceUI:
         for service in services:
             category_name = service.category.category_name if service.category else "Без категории"
             print(f"  {service.service_id}) {service.service_name} - {service.price} руб., {service.good_format_time} ({category_name})")
-            print()
     
     @staticmethod
     def show_services_by_category(category: ServiceCategory, services: List[Service]) -> None:
@@ -60,7 +59,6 @@ class ServiceUI:
         
         for service in services:
             print(f"  {service.service_id}) {service.service_name} - {service.price} руб., {service.good_format_time}")
-            print()
     
     @staticmethod
     def show_service_created(service: Service) -> None:

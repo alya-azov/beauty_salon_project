@@ -30,10 +30,16 @@ class MasterService:
             missing = [c_id for c_id in category_ids if c_id not in found_ids]
             raise ValueError(f"Категории с ID {missing} не найдены")
         
-
-        for category in categories:
-            if category not in master.service_categories:
-                master.service_categories.append(category)
+        try:
+            for category in categories:
+                if category not in master.service_categories:
+                    master.service_categories.append(category)
+            
+            self.session.commit()
+            
+        except Exception as e:
+            self.session.rollback()
+            raise ValueError(f"Ошибка при добавлении категорий: {e}")
 
     def create_master(self, first_name: str, last_name: str, phone: str, email: str, specialty: str, category_ids: Optional[List[int]] = None) -> Master:
         """
@@ -159,6 +165,34 @@ class MasterService:
                 self.session.rollback()
                 raise MasterError(f"Ошибка при удалении мастера: {e}")
         return False
+    
+    def remove_category_from_master(self, master_id: int, category_id: int) -> bool:
+        """
+        Удаляет категорию у мастера
+        
+        Args:
+            master_id: ID мастера
+            category_id: ID категории
+            
+        Returns:
+            bool: True если категория удалена, False если не найдена
+        """
+        from models.services import ServiceCategory
+        
+        master = self.session.query(Master).filter_by(master_id=master_id).first()
+        if not master:
+            raise MasterError(f"Мастер с ID {master_id} не найден")
+        
+        category = self.session.query(ServiceCategory).filter_by(category_id=category_id).first()
+        if not category:
+            raise MasterError(f"Категория с ID {category_id} не найдена")
+        
+        if category in master.service_categories:
+            master.service_categories.remove(category)
+            self.session.commit()
+            return True
+        
+        return False
 
 #для управления специальностями 
 class SpecialtyService:
@@ -185,3 +219,4 @@ class SpecialtyService:
             List[Master]: Список мастеров с указанной специальностью. Пустой список, если мастеров не найдено.
         """
         return self.session.query(Master).filter(Master.specialty == specialty).all()
+    

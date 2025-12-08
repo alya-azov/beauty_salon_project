@@ -32,7 +32,8 @@ class ScheduleUI:
             print("Перерывы:") 
             i = 1
             for master_break in schedule.breaks:
-                print(f"  {i}) {master_break.break_start.strftime('%H:%M')} - {master_break.break_end.strftime('%H:%M') -  + master_break.reason if master_break.reason else ''}")
+                print(f"  {i}) {master_break.break_start.strftime('%H:%M')} - {master_break.break_end.strftime('%H:%M')}" + 
+                      (f" ({master_break.reason})" if master_break.reason else ""))
                 i += 1
         else:
             print("Перерывы: Нет")
