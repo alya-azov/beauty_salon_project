@@ -1,0 +1,26 @@
+name: CI Tests and Docs
+
+on: [push, pull_request]
+
+jobs:
+test:
+runs-on: ubuntu-latest
+
+steps:
+- uses: actions/checkout@v4
+
+- uses: actions/setup-python@v4
+with:
+python-version: '3.12'  # <-- ИЗМЕНИЛ НА 3.12!
+
+- name: Установка зависимостей
+run: pip install -r requirements.txt
+
+- name: Запуск тестов
+run: python -m pytest tests/ --verbose
+
+- name: Проверка типов
+run: python -m mypy . --ignore-missing-imports
+
+- name: Сборка документации
+run: sphinx-build -b html docs/source/ docs/build/html
