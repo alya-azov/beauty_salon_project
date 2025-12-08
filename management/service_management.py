@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any
 from models.services import Service, ServiceCategory
 from exceptions import ServiceError
 
@@ -102,7 +102,8 @@ class ServiceService:
     
         if not hasattr(service, field):
             raise ServiceError(f"Поле {field} не существует в модели Service")
-    
+        
+        n_value: Any
     
         # Валидация для поля category_id
         if field == 'category_id':
@@ -142,7 +143,6 @@ class ServiceService:
             if not str(value).strip():
                 raise ServiceError(f"Название услуги не может быть пустым")
             n_value = str(value).strip()
-
 
         try:
             setattr(service, field, n_value)

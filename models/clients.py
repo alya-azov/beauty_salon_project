@@ -14,7 +14,7 @@ class SalonCard(Base):
     __tablename__ = "salon_cards"
     
     client_id = Column(Integer, ForeignKey('clients.client_id'), primary_key=True)
-    discount_level = Column(Enum(DiscountLevel), default=DiscountLevel.STANDARD, nullable=False)
+    discount_level: Column[DiscountLevel] = Column(Enum(DiscountLevel), default=DiscountLevel.STANDARD, nullable=False)
     total_spent = Column(Float, default=0.0, nullable=False)
     issue_date = Column(DateTime, default=datetime.now, nullable=False)
     
@@ -28,11 +28,11 @@ class SalonCard(Base):
         Повышает уровень карты при достижении нужной суммы
         """
         if self.total_spent >= 30000: #type: ignore
-            self.discount_level = DiscountLevel.PLATINUM
+            self.discount_level = DiscountLevel.PLATINUM# type: ignore
         elif self.total_spent >= 15000:#type: ignore
-            self.discount_level = DiscountLevel.GOLD
+            self.discount_level = DiscountLevel.GOLD #type: ignore
         elif self.total_spent >= 5000:#type: ignore
-            self.discount_level = DiscountLevel.SILVER
+            self.discount_level = DiscountLevel.SILVER #type: ignore
     
     #применение скидки к сумме
     def apply_discount(self, amount: float) -> float:

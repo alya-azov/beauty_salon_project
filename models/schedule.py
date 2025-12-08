@@ -63,7 +63,7 @@ class Appointment(Base):
     schedule_id = Column(Integer, ForeignKey('master_schedule.schedule_id'), nullable=False) 
     start_datetime = Column(DateTime, nullable=False) 
     end_datetime = Column(DateTime, nullable=False)
-    status = Column(Enum(AppointmentStatus), default=AppointmentStatus.SCHEDULED, nullable=False)
+    status: Column[AppointmentStatus] = Column(Enum(AppointmentStatus), default=AppointmentStatus.SCHEDULED, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     notes = Column(String(500))
     

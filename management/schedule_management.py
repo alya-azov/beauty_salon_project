@@ -144,7 +144,7 @@ class ScheduleService:
                 for appointment in appointments:
                     if current_time < appointment.end_datetime and slot_end > appointment.start_datetime:#type:ignore
                         slot_available = False
-                        current_time = appointment.end_datetime
+                        current_time = appointment.end_datetime#type:ignore
                         break
                 
                 if slot_available:
