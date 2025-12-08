@@ -17,7 +17,7 @@ jobs:
       run: pip install -r requirements.txt
     
     - name: Запуск тестов
-      run: python -m pytest tests/ --verbose
+      run: python -m pytest tests/tests_*.py --verbose
     
     - name: Проверка типов
       run: python -m mypy . --ignore-missing-imports
