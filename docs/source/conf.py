@@ -10,6 +10,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
+from typing import List
+
 project = 'Beauty Salon'
 copyright = '2025, Azovtseva Alya'
 author = 'Azovtseva Alya'
