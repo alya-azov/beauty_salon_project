@@ -20,7 +20,7 @@ jobs:
       run: python -m pytest tests/tests_*.py --verbose
     
     - name: Проверка типов
-      run: python -m mypy . --ignore-missing-imports
+      run: python -m mypy . --ignore-missing-imports --explicit-package-bases --namespace-packages
     
     - name: Сборка документации
       run: sphinx-build -b html docs/source/ docs/build/html
