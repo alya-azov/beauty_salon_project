@@ -1,1 +1,1 @@
-# beauty_salon_project
+# beauty_salon_project# CI/CD checking
