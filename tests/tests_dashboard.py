@@ -13,6 +13,46 @@ from models.services import Service
 from models.masters import Master
 from models.clients import Client
 
+def get_test_data():
+    """Получаем тестовые данные"""
+    session = create_test_database()
+    
+    # Копируем логику из dashboard.py
+    from models.schedule import Appointment
+    from models.services import Service
+    from models.masters import Master
+    from models.clients import Client
+    
+    appointments = (session.query(
+        Appointment,
+        Service.service_name,
+        Master.first_name,
+        Master.last_name,
+        Client.first_name.label('client_first_name'),
+        Client.last_name.label('client_last_name')
+    )
+    .join(Service, Appointment.service_id == Service.service_id)
+    .join(Master, Appointment.master_id == Master.master_id)
+    .join(Client, Appointment.client_id == Client.client_id)
+    .all())
+    
+    data = []
+    for app, service_name, master_first, master_last, client_first, client_last in appointments:
+        data.append({
+            'date': app.start_datetime.date(),
+            'service': service_name,
+            'master': f"{master_first} {master_last}",
+            'client': f"{client_first} {client_last}",
+            'price': app.service.price,
+            'status': app.status.value,
+            'duration': app.service.duration_minutes if app.service else 0
+        })
+    
+    df = pd.DataFrame(data)
+    session.close()
+    
+    return df
+
 def create_test_database():
     """Создаем тестовую БД с данными"""
     engine = create_engine("sqlite:///:memory:")
@@ -118,9 +158,10 @@ def test_get_statistics_data():
     return df
 
 
-def test_filter_data_by_period(df):
+def test_filter_data_by_period():
     """Тест фильтрации по периоду"""
     
+    df = get_test_data()
     today = date(2024, 12, 12)
     
     cutoff_date = today - timedelta(days=7)
@@ -133,9 +174,10 @@ def test_filter_data_by_period(df):
     
     print("test_filter_data_by_period")
 
-def test_revenue_calculation(df):
+def test_revenue_calculation():
     """Тест расчета доходов"""
     
+    df = get_test_data()
     revenue_data = df[df['status'] == 'COMPLETED']
     total_revenue = revenue_data['price'].sum()
     
@@ -144,9 +186,10 @@ def test_revenue_calculation(df):
     
     print("test_revenue_calculation")
 
-def test_service_popularity(df):
+def test_service_popularity():
     """Тест популярности услуг"""
     
+    df = get_test_data()
     service_counts = df['service'].value_counts()
     
     assert len(service_counts) == 2
@@ -158,9 +201,10 @@ def test_service_popularity(df):
     print("test_service_popularity")
 
 
-def test_master_statistics(df):
+def test_master_statistics():
     """Тест статистики мастеров"""
     
+    df = get_test_data()
     master_stats = df.groupby('master').agg({
         'price': 'sum',
         'service': 'count'
@@ -236,10 +280,10 @@ def run_all_tests():
     """Запуск всех тестов"""
     
     df = test_get_statistics_data()
-    test_filter_data_by_period(df)
-    test_revenue_calculation(df)
-    test_service_popularity(df)
-    test_master_statistics(df)
+    test_filter_data_by_period()
+    test_revenue_calculation()
+    test_service_popularity()
+    test_master_statistics()
     test_empty_database()
     
     print("\nВСЕ ТЕСТЫ ПРОЙДЕНЫ!")
