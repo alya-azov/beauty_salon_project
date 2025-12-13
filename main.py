@@ -2357,9 +2357,25 @@ class MainMenu:
             elif choice == "5":
                 self.manage_appointments()
             elif choice == "6":
-                #self.view_statistics()
-                #хочу это как фичу во 2 итерации, графики там всякие
-                print(" in th futur")
+                print("\n" + "=" * 50)
+                print("📊 СТАТИСТИКА САЛОНА")
+                print("=" * 50)
+                print("Запуск интерактивного дашборда...")
+                print("Откроется в браузере через несколько секунд")
+                print("-" * 50)
+                
+                try:
+                    from dashboard import run_statistics_dashboard
+                    result = run_statistics_dashboard(self.session)
+                    print(result)
+                except ImportError as e:
+                    print(f"Ошибка: {e}")
+                    print("Установите зависимости: pip install dash plotly pandas")
+                except Exception as e:
+                    print(f"Ошибка запуска: {e}")
+                
+                print("\nДля продолжения закройте вкладку браузера")
+                input("Нажмите Enter чтобы вернуться в меню...")
             elif choice == "0":
                 self.is_admin = False
                 print("Выход из аккаунта администратора выполнен.")

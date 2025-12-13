@@ -4,3 +4,6 @@ pytest
 mypy
 sphinx
 sphinx-autodoc-typehints
+pandas
+plotly
+dash
