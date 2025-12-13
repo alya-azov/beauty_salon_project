@@ -2134,9 +2134,9 @@ class MainMenu:
             # 3. date
             date_str = input("Дата записи (ДД.ММ.ГГГГ): ").strip()
             work_date = datetime.strptime(date_str, "%d.%m.%Y").date()
-            #if work_date < date.today():
-            #    print("Нельзя создавать записи на прошедшие даты")
-            #    return
+            if work_date < date.today():
+                print("Нельзя создавать записи на прошедшие даты")
+                return
         
             # 4. masters 
             all_masters = master_service.get_all_masters()
